@@ -46,7 +46,6 @@ public class MarkdownMacro extends BaseMacro implements Macro
 {
 
     private final XhtmlContent xhtmlUtils;
-
     private PageBuilderService pageBuilderService;
 
     @Autowired
@@ -54,12 +53,7 @@ public class MarkdownMacro extends BaseMacro implements Macro
         this.pageBuilderService = pageBuilderService;
         this.xhtmlUtils = xhtmlUtils;
     }
-
-//    public MarkdownMacro(XhtmlContent xhtmlUtils)
-//    {
-//        this.xhtmlUtils = xhtmlUtils;
-//    }
-
+    
     @Override
     public BodyType getBodyType()
     {
@@ -107,9 +101,8 @@ public class MarkdownMacro extends BaseMacro implements Macro
         HtmlRenderer renderer = HtmlRenderer.builder(options).build();
 
         Node document = parser.parse(bodyContent);
-        String html = renderer.render(document ) + highlightjs;  // "<p>This is <em>Sparta</em></p>\n"
+        String html = renderer.render(document ) + highlightjs;
         return html;
-
     }
 
     @Override
