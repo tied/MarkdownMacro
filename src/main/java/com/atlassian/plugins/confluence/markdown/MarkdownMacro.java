@@ -70,9 +70,11 @@ public class MarkdownMacro extends BaseMacro implements Macro
     public String execute(Map<String, String> parameters, String bodyContent, ConversionContext conversionContext) throws MacroExecutionException
     {
 
-
+    	//Include highlight.js in the webpage.
+		//Adds something like <script type="text/javascript" src="path-to-javascript-file.js"></script> to the <head> of the page
         pageBuilderService.assembler().resources().requireWebResource("com.atlassian.plugins.confluence.markdown.confluence-markdown-macro:highlightjs");
-
+        
+        //Set options for flexmark. See flexmark documentation for more info.
         MutableDataSet options = new MutableDataSet();
 
         options.set(Parser.EXTENSIONS, Arrays.asList(
@@ -89,16 +91,21 @@ public class MarkdownMacro extends BaseMacro implements Macro
             YouTubeLinkExtension.create()
 
         ));
-
-
+        
+        
+        //JavaScript for syntax highlighting. See highlight.js documentation for more info.
         String highlightjs = "<script>\n" +
                 "AJS.$('[data-macro-name=\"markdown\"] code').each(function(i, block) {\n" +
                 "    hljs.highlightBlock(block);\n" +
                 "  });\n" +
                 "</script>";
+        
+        //Set up parser and renderer for flexmark.
         Parser parser = Parser.builder(options).build();
         HtmlRenderer renderer = HtmlRenderer.builder(options).build();
-
+        
+        //  Parse and render the body content from markdown to HTML,
+        //  then return the output along with the JavaScript for syntax highlighting
         Node document = parser.parse(bodyContent);
         String html = renderer.render(document) + highlightjs;
         return html;

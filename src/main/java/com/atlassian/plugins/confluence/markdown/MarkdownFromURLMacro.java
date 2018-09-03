@@ -77,10 +77,13 @@ public class MarkdownFromURLMacro extends BaseMacro implements Macro
     @Override
     public String execute(Map<String, String> parameters, String bodyContent, ConversionContext conversionContext) throws MacroExecutionException
     {
-
+    	//If the macro was not left blank, run the macro. Otherwise, return an empty string.
 		if (bodyContent != null) {
+			//Include highlight.js in the webpage.
+			//Adds something like <script type="text/javascript" src="path-to-javascript-file.js"></script> to the <head> of the page
 			pageBuilderService.assembler().resources().requireWebResource("com.atlassian.plugins.confluence.markdown.confluence-markdown-macro:highlightjs");
-
+			
+			//Set options for flexmark. See flexmark documentation for more info.
 			MutableDataSet options = new MutableDataSet();
 
 			options.set(Parser.EXTENSIONS, Arrays.asList(
@@ -98,26 +101,35 @@ public class MarkdownFromURLMacro extends BaseMacro implements Macro
 
 			));
 
-
+			
+			//JavaScript for syntax highlighting. See highlight.js documentation for more info.
 			String highlightjs = "<script>\n" +
 					"AJS.$('[data-macro-name=\"markdown\"] code').each(function(i, block) {\n" +
 					"    hljs.highlightBlock(block);\n" +
 					"  });\n" +
 					"</script>";
 
+			//Define a custom exception for trying to import from a private Bitbucket repository
 			class privateRepositoryException extends Exception {
 				public privateRepositoryException(String message) {
 					super(message);
 				}
 			}
 			
+			//Set up parser and renderer for flexmark.
 			Parser parser = Parser.builder(options).build();
 			HtmlRenderer renderer = HtmlRenderer.builder(options).build();
 			
 			String exceptionsToReturn = "";
 			String html = "";
 			String toParse = "";
+			
+			//Import markdown from a URL and render it to html.
+			//Enclosed in a try/catch block in order to catch exceptions and return error messages to the user
 			try {
+				//Create a URL object from the URL typed in by the user,
+				//  then fetch the URL content line by line and store each line temporarily in inputLine.
+				//Concatenate all the lines into toParse and trim leading and trailing whitespace.
 				URL importFrom = new URL(bodyContent);
 				BufferedReader in = new BufferedReader(
 					new InputStreamReader(importFrom.openStream())
@@ -128,12 +140,17 @@ public class MarkdownFromURLMacro extends BaseMacro implements Macro
 				}
 				in.close();
 				toParse = toParse.trim();
+				
+				
+				//If the content of the URL is a file in a private Bitbucket repository, then throw an exception.
+				//Otherwise, parse and render the markdown.
 				if (toParse.startsWith("<html>\n<head>\n  <title>OpenID transaction in progress</title>")) {
 					throw new privateRepositoryException("Cannot import from private repository.");
 				}else {
 					Node document = parser.parse(toParse);
 					html = renderer.render(document) + highlightjs;
 				}
+				
 			}
 			catch (MalformedURLException u) {
 				exceptionsToReturn = exceptionsToReturn + "<strong>Error with Markdown From URL macro: Invalid URL.</strong><br>Please enter a valid URL. If you are not trying to import markdown from a URL, use the Markdown macro instead of the Markdown from URL macro.<br>For support <a href='https://community.atlassian.com/t5/tag/addon-com.atlassian.plugins.confluence.markdown.confluence-markdown-macro/tg-p'>visit our Q&A in the Atlassian Community</a>. You can ask a new question by clicking the \"Create\" button on the top right of the Q&A.<br>";
@@ -148,9 +165,12 @@ public class MarkdownFromURLMacro extends BaseMacro implements Macro
 				exceptionsToReturn = exceptionsToReturn + "<strong>Error with Markdown From URL macro: Unexpected error.</strong><br>" + e.toString() + "<br>For support <a href='https://community.atlassian.com/t5/tag/addon-com.atlassian.plugins.confluence.markdown.confluence-markdown-macro/tg-p'>visit our Q&A in the Atlassian Community</a>. You can ask a new question by clicking the \"Create\" button on the top right of the Q&A.<br>"; 
 			}
 			finally {
+				//If there were exceptions, set the html to return to an error message (or multiple)
 				if (exceptionsToReturn != "") {
 					html = "<p style='background: #ffe0e0; border-radius: 5px; padding: 10px;'>" + exceptionsToReturn + "</p>";
 				}
+				
+				//Return the output, which is either rendered markdown or an error message.
 				return html;
 			}
  		}else {
