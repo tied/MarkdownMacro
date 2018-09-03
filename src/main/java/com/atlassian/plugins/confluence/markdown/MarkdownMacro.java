@@ -96,12 +96,11 @@ public class MarkdownMacro extends BaseMacro implements Macro
                 "    hljs.highlightBlock(block);\n" +
                 "  });\n" +
                 "</script>";
-
         Parser parser = Parser.builder(options).build();
         HtmlRenderer renderer = HtmlRenderer.builder(options).build();
 
         Node document = parser.parse(bodyContent);
-        String html = renderer.render(document ) + highlightjs;
+        String html = renderer.render(document) + highlightjs;
         return html;
     }
 

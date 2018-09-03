@@ -38,6 +38,16 @@ public class MarkdownUnitTest {
 		Mockito.when(requiredResources.requireWebResource("com.atlassian.plugins.confluence.markdown.confluence-markdown-macro:highlightjs")).thenReturn(requiredResources);
 		@SuppressWarnings({ "rawtypes", "unchecked" })
 		String output = markdownMacro.execute(new HashMap(), "*Italic*", conversionContext);
-		assertTrue(Pattern.matches("<p><em>Italic</em></p>[\\S\\s]*", output));
+		assertTrue(Pattern.matches("[\\S\\s]*<em>Italic</em>[\\S\\s]*", output));
+	}
+	
+	@Test
+	public void testSyntaxHighlighting() throws MacroExecutionException {
+		Mockito.when(pageBuilderService.assembler()).thenReturn(webResourceAssembler);
+		Mockito.when(webResourceAssembler.resources()).thenReturn(requiredResources);
+		Mockito.when(requiredResources.requireWebResource("com.atlassian.plugins.confluence.markdown.confluence-markdown-macro:highlightjs")).thenReturn(requiredResources);
+		@SuppressWarnings({ "rawtypes", "unchecked" })
+		String output = markdownMacro.execute(new HashMap(), "public class JavaClass {}", conversionContext);
+		assertTrue(Pattern.matches("[\\S\\s]*<script>\\sAJS\\.\\$\\('\\[data\\-macro\\-name=\"markdown\"\\] code'\\)\\.each\\(function\\(i, block\\) \\{\\s    hljs\\.highlightBlock\\(block\\);\\s  \\}\\);\\s<\\/script>[\\S\\s]*", output));
 	}
 }
