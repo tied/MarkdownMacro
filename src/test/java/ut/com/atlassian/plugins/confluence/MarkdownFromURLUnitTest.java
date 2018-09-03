@@ -1,8 +1,10 @@
 package ut.com.atlassian.plugins.confluence;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.*;
 
 import org.mockito.*;
 import org.mockito.runners.MockitoJUnitRunner;
@@ -41,6 +43,24 @@ public class MarkdownFromURLUnitTest {
 		String file = new File("src/test/resources/testMarkdown.md").toURI().toURL().toString();
 		@SuppressWarnings({ "rawtypes", "unchecked" })
 		String output = markdownMacro.execute(new HashMap(), file, conversionContext);
-		assertTrue(Pattern.matches("[\\S\\s]*<em>Italic</em>[\\S\\s]*", output));
+		assertThat(Pattern.matches("[\\S\\s]*<em>Italic</em>[\\S\\s]*", output), is(true));
+	}
+    @Test
+    public void testErrorHandling() throws MacroExecutionException, MalformedURLException {
+		Mockito.when(pageBuilderService.assembler()).thenReturn(webResourceAssembler);
+		Mockito.when(webResourceAssembler.resources()).thenReturn(requiredResources);
+		Mockito.when(requiredResources.requireWebResource("com.atlassian.plugins.confluence.markdown.confluence-markdown-macro:highlightjs")).thenReturn(requiredResources);
+		String input1 = new File("src/test/resources/nonexistantfile.md").toURI().toURL().toString();
+		@SuppressWarnings({ "rawtypes", "unchecked" })
+		String output1 = markdownMacro.execute(new HashMap(), input1, conversionContext);
+		assertThat(output1, is(not("")));
+		String input2 = "not_a_URL";
+		@SuppressWarnings({ "rawtypes", "unchecked" })
+		String output2 = markdownMacro.execute(new HashMap(), input2, conversionContext);
+		assertThat(output2, is(not("")));
+		String input3 = new File("src/test/resources/testPrivateBitbucket.html").toURI().toURL().toString();
+		@SuppressWarnings({ "rawtypes", "unchecked" })
+		String output3 = markdownMacro.execute(new HashMap(), input3, conversionContext);
+		assertThat(output3, is(not("")));
 	}
 }
