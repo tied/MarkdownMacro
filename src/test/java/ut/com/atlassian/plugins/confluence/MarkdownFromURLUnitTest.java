@@ -1,5 +1,6 @@
 package ut.com.atlassian.plugins.confluence;
 
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -37,11 +38,6 @@ public class MarkdownFromURLUnitTest {
     
     @Test
 	public void testMarkdownRendering() throws MacroExecutionException, MalformedURLException {
-		//Mock methods for pageBuilderService.assembler().resources().requireWebResource("com.atlassian.plugins.confluence.markdown.confluence-markdown-macro:highlightjs");
-    	Mockito.when(pageBuilderService.assembler()).thenReturn(webResourceAssembler);
-		Mockito.when(webResourceAssembler.resources()).thenReturn(requiredResources);
-		Mockito.when(requiredResources.requireWebResource("com.atlassian.plugins.confluence.markdown.confluence-markdown-macro:highlightjs")).thenReturn(requiredResources);
-		
 		/*Test that markdown is correctly retrieved from a URL and rendered into HTML*/
 		// Run the macro using a URL that points to a file containing test markdown,
 		// then assert that *Italic* was correctly rendered into <em>Italic</em>
@@ -52,11 +48,6 @@ public class MarkdownFromURLUnitTest {
 	}
     @Test
     public void testErrorHandling() throws MacroExecutionException, MalformedURLException {
-    	//Mock methods for pageBuilderService.assembler().resources().requireWebResource("com.atlassian.plugins.confluence.markdown.confluence-markdown-macro:highlightjs");
-    	Mockito.when(pageBuilderService.assembler()).thenReturn(webResourceAssembler);
-		Mockito.when(webResourceAssembler.resources()).thenReturn(requiredResources);
-		Mockito.when(requiredResources.requireWebResource("com.atlassian.plugins.confluence.markdown.confluence-markdown-macro:highlightjs")).thenReturn(requiredResources);
-		
 		/*Test error handling of nonexistent URLs*/
 		//  Run the macro using a URL pointing to a file that does not exist,
 		//  then assert that the output of the macro is not an empty string
@@ -87,4 +78,11 @@ public class MarkdownFromURLUnitTest {
 		String output3 = markdownMacro.execute(new HashMap(), input3, conversionContext);
 		assertThat(output3, is(not("")));
 	}
+    @Before
+    public void setup() {
+    	//Mock methods for pageBuilderService.assembler().resources().requireWebResource("com.atlassian.plugins.confluence.markdown.confluence-markdown-macro:highlightjs");
+    	Mockito.when(pageBuilderService.assembler()).thenReturn(webResourceAssembler);
+		Mockito.when(webResourceAssembler.resources()).thenReturn(requiredResources);
+		Mockito.when(requiredResources.requireWebResource("com.atlassian.plugins.confluence.markdown.confluence-markdown-macro:highlightjs")).thenReturn(requiredResources);
+    }
 }
