@@ -1,7 +1,6 @@
 package ut.com.atlassian.plugins.confluence;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import static org.junit.Assert.*;
@@ -11,8 +10,9 @@ import org.mockito.*;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import java.util.HashMap;
-import java.util.regex.Pattern;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.net.*;
 
 import com.atlassian.confluence.content.render.xhtml.ConversionContext;
@@ -20,7 +20,10 @@ import com.atlassian.confluence.macro.MacroExecutionException;
 import com.atlassian.webresource.api.assembler.PageBuilderService;
 import com.atlassian.webresource.api.assembler.RequiredResources;
 import com.atlassian.webresource.api.assembler.WebResourceAssembler;
-
+import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
+import com.gargoylesoftware.htmlunit.WebClient;
+import com.gargoylesoftware.htmlunit.html.HtmlElement;
+import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.atlassian.plugins.confluence.markdown.MarkdownFromURLMacro;
 
 @RunWith (MockitoJUnitRunner.class)
@@ -44,7 +47,7 @@ public class MarkdownFromURLUnitTest {
 		String file = new File("src/test/resources/testMarkdown.md").toURI().toURL().toString();
 		@SuppressWarnings({ "rawtypes", "unchecked" })
 		String output = markdownMacro.execute(new HashMap(), file, conversionContext);
-		assertThat(Pattern.matches("[\\S\\s]*<em>Italic</em>[\\S\\s]*", output), is(true)); //Uses [\S\s] (anything that is either whitespace or not whitespace) instead of . (any character) because . does not match newline characters.
+		assertTrue(output.contains("<em>Italic</em>"));
 	}
     @Test
     public void testErrorHandling() throws MacroExecutionException, MalformedURLException {
@@ -77,6 +80,55 @@ public class MarkdownFromURLUnitTest {
 		@SuppressWarnings({ "rawtypes", "unchecked" })
 		String output3 = markdownMacro.execute(new HashMap(), input3, conversionContext);
 		assertThat(output3, is(not("")));
+	}
+    @Test
+	public void testSyntaxHighlighting() throws MacroExecutionException {
+		/*Test that the javascript for syntax highlighting works*/
+		// Run the macro with an input of a line of code
+		// Create a temporary HTML file containing the output
+		// Parse the HTML file with htmlunit
+		// Assert that the page contains three spans with the correct classes
+    	// Note: Does not test if highlight.js and highlight.css are correctly included in the page
+		try (final WebClient webClient = new WebClient()) {
+			String file = new File("src/test/resources/testSyntaxHighlighting.md").toURI().toURL().toString();
+			@SuppressWarnings({ "rawtypes", "unchecked" })
+			String output = markdownMacro.execute(new HashMap(), file, conversionContext);
+			String toWrite = "﻿<!DOCTYPE html>\r\n" + 
+					"<html>\r\n" + 
+					"<head>\r\n" + 
+					"    <title>Syntax Highlighting Page</title>\r\n" + 
+					"    <script src=\"./jquery-3.3.1.min.js\"></script>\r\n" + 
+					"    <script src=\"../../main/resources/js/highlight.min.js\"></script>\r\n" + 
+					"    <link href=\"../../main/resources/css/highlight.min.css\" rel=\"stylesheet\" />\r\n" + 
+					"</head>\r\n" + 
+					"<body>\r\n" + 
+					"	<script>\r\n" + 
+					"		var AJS = {\r\n" + 
+					"			$: $\r\n" + 
+					"		};\r\n" + 
+					"    </script>\r\n" + 
+					"<div data-macro-name='markdown'>" +
+					output + 
+					"</div>" + 
+					"</body>\r\n" + 
+					"</html>";
+		    File tmpHTMLFile = File.createTempFile("syntax-highlighting-", ".html", new File("src/test/resources"));
+		    FileWriter writer = new FileWriter(tmpHTMLFile);
+		    writer.write(toWrite);
+		    writer.close();
+			final HtmlPage page = webClient.getPage(tmpHTMLFile.toURI().toURL().toString());
+			HtmlElement document = page.getDocumentElement();
+			assertTrue(document.getElementsByAttribute("span", "class", "hljs-class").size() > 0);
+			assertTrue(document.getElementsByAttribute("span", "class", "hljs-keyword").size() > 0);
+			assertTrue(document.getElementsByAttribute("span", "class", "hljs-title").size() > 0);
+			tmpHTMLFile.delete();
+		} catch (FailingHttpStatusCodeException e) {
+			e.printStackTrace();
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
     @Before
     public void setup() {

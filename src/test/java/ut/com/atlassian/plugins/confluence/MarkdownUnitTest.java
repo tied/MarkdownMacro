@@ -1,13 +1,10 @@
 package ut.com.atlassian.plugins.confluence;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import static org.junit.Assert.*;
-import static org.hamcrest.CoreMatchers.*;
 
-import net.sourceforge.htmlunit.*;
 import com.gargoylesoftware.htmlunit.*;
 import com.gargoylesoftware.htmlunit.html.*;
 
@@ -17,7 +14,6 @@ import org.mockito.runners.MockitoJUnitRunner;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.util.HashMap;
-import java.util.regex.Pattern;
 
 import com.atlassian.confluence.content.render.xhtml.ConversionContext;
 import com.atlassian.confluence.macro.MacroExecutionException;
@@ -46,15 +42,16 @@ public class MarkdownUnitTest {
 		// then assert that *Italic* was correctly rendered into <em>Italic</em>
 		@SuppressWarnings({ "rawtypes", "unchecked" })
 		String output = markdownMacro.execute(new HashMap(), "*Italic*", conversionContext);
-		assertTrue(Pattern.matches("[\\S\\s]*<em>Italic</em>[\\S\\s]*", output)); //Uses [\S\s] (anything that is either whitespace or not whitespace) instead of . (any character) because . does not match newline characters.
+		assertTrue(output.contains("<em>Italic</em>"));
 	}
 	@Test
 	public void testSyntaxHighlighting() throws MacroExecutionException {
-		/*Test that the correct JavaScript is returned for highlight.js to work*/
+		/*Test that the javascript for syntax highlighting works*/
 		// Run the macro with an input of a line of code
 		// Create a temporary HTML file containing the output
 		// Parse the HTML file with htmlunit
 		// Assert that the page contains three spans with the correct classes
+    	// Note: Does not test if highlight.js and highlight.css are correctly included in the page
 		try (final WebClient webClient = new WebClient()) {
 			@SuppressWarnings({ "rawtypes", "unchecked" })
 			String output = markdownMacro.execute(new HashMap(), "`class className() {}`", conversionContext);
@@ -94,9 +91,6 @@ public class MarkdownUnitTest {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-//		System.out.println(output);
-//		assertTrue(Pattern.matches("[\\S\\s]*<code.*>public class JavaClass \\{\\}<\\/code>[\\S\\s]*", output));
-//		assertTrue(Pattern.matches("[\\S\\s]*<script>\\sAJS\\.\\$\\('\\[data\\-macro\\-name=\"markdown\"\\] code'\\)\\.each\\(function\\(i, block\\) \\{\\s    hljs\\.highlightBlock\\(block\\);\\s  \\}\\);\\s<\\/script>[\\S\\s]*", output));
 	}
 	
 	@Before
