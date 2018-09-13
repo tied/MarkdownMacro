@@ -4,11 +4,18 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.*;
+
+import net.sourceforge.htmlunit.*;
+import com.gargoylesoftware.htmlunit.*;
+import com.gargoylesoftware.htmlunit.html.*;
 
 import org.mockito.*;
 import org.mockito.runners.MockitoJUnitRunner;
 
+import java.io.*;
+import java.net.MalformedURLException;
 import java.util.HashMap;
 import java.util.regex.Pattern;
 
@@ -17,7 +24,6 @@ import com.atlassian.confluence.macro.MacroExecutionException;
 import com.atlassian.webresource.api.assembler.PageBuilderService;
 import com.atlassian.webresource.api.assembler.RequiredResources;
 import com.atlassian.webresource.api.assembler.WebResourceAssembler;
-
 import com.atlassian.plugins.confluence.markdown.MarkdownMacro;
 
 @RunWith (MockitoJUnitRunner.class)
@@ -45,14 +51,52 @@ public class MarkdownUnitTest {
 	@Test
 	public void testSyntaxHighlighting() throws MacroExecutionException {
 		/*Test that the correct JavaScript is returned for highlight.js to work*/
-		// Run the macro using input of a line of code in a code block,
-		// then assert that a <code> block is returned.
-		// Intended only as a temporary test until I can program a better one
-		@SuppressWarnings({ "rawtypes", "unchecked" })
-		String output = markdownMacro.execute(new HashMap(), "`public class JavaClass {}`", conversionContext);
-		System.out.println(output);
-		assertTrue(Pattern.matches("[\\S\\s]*<code.*>public class JavaClass \\{\\}<\\/code>[\\S\\s]*", output));
-		assertTrue(Pattern.matches("[\\S\\s]*<script>\\sAJS\\.\\$\\('\\[data\\-macro\\-name=\"markdown\"\\] code'\\)\\.each\\(function\\(i, block\\) \\{\\s    hljs\\.highlightBlock\\(block\\);\\s  \\}\\);\\s<\\/script>[\\S\\s]*", output));
+		// Run the macro with an input of a line of code
+		// Create a temporary HTML file containing the output
+		// Parse the HTML file with htmlunit
+		// Assert that the page contains three spans with the correct classes
+		try (final WebClient webClient = new WebClient()) {
+			@SuppressWarnings({ "rawtypes", "unchecked" })
+			String output = markdownMacro.execute(new HashMap(), "`class className() {}`", conversionContext);
+			String toWrite = "﻿<!DOCTYPE html>\r\n" + 
+					"<html>\r\n" + 
+					"<head>\r\n" + 
+					"    <title>Syntax Highlighting Page</title>\r\n" + 
+					"    <script src=\"./jquery-3.3.1.min.js\"></script>\r\n" + 
+					"    <script src=\"../../main/resources/js/highlight.min.js\"></script>\r\n" + 
+					"    <link href=\"../../main/resources/css/highlight.min.css\" rel=\"stylesheet\" />\r\n" + 
+					"</head>\r\n" + 
+					"<body>\r\n" + 
+					"	<script>\r\n" + 
+					"		var AJS = {\r\n" + 
+					"			$: $\r\n" + 
+					"		};\r\n" + 
+					"    </script>\r\n" + 
+					"<div data-macro-name='markdown'>" +
+					output + 
+					"</div>" + 
+					"</body>\r\n" + 
+					"</html>";
+		    File tmpHTMLFile = File.createTempFile("syntax-highlighting-", ".html", new File("src/test/resources"));
+		    FileWriter writer = new FileWriter(tmpHTMLFile);
+		    writer.write(toWrite);
+		    writer.close();
+			final HtmlPage page = webClient.getPage(tmpHTMLFile.toURI().toURL().toString());
+			HtmlElement document = page.getDocumentElement();
+			assertTrue(document.getElementsByAttribute("span", "class", "hljs-class").size() > 0);
+			assertTrue(document.getElementsByAttribute("span", "class", "hljs-keyword").size() > 0);
+			assertTrue(document.getElementsByAttribute("span", "class", "hljs-title").size() > 0);
+			tmpHTMLFile.delete();
+		} catch (FailingHttpStatusCodeException e) {
+			e.printStackTrace();
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+//		System.out.println(output);
+//		assertTrue(Pattern.matches("[\\S\\s]*<code.*>public class JavaClass \\{\\}<\\/code>[\\S\\s]*", output));
+//		assertTrue(Pattern.matches("[\\S\\s]*<script>\\sAJS\\.\\$\\('\\[data\\-macro\\-name=\"markdown\"\\] code'\\)\\.each\\(function\\(i, block\\) \\{\\s    hljs\\.highlightBlock\\(block\\);\\s  \\}\\);\\s<\\/script>[\\S\\s]*", output));
 	}
 	
 	@Before
