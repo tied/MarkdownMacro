@@ -38,8 +38,6 @@ public class MarkdownUnitTest {
 	@Test
 	public void testMarkdownRendering() throws MacroExecutionException {
 		/*Test that markdown is correctly rendered into HTML*/
-		// Run the macro using input text of *Italic*,
-		// then assert that *Italic* was correctly rendered into <em>Italic</em>
 		@SuppressWarnings({ "rawtypes", "unchecked" })
 		String output = markdownMacro.execute(new HashMap(), "*Italic*", conversionContext);
 		assertTrue(output.contains("<em>Italic</em>"));
