@@ -4,6 +4,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.*;
 
 import com.gargoylesoftware.htmlunit.*;
 import com.gargoylesoftware.htmlunit.html.*;
@@ -14,6 +15,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.util.HashMap;
+import java.util.List;
 
 import com.atlassian.confluence.content.render.xhtml.ConversionContext;
 import com.atlassian.confluence.macro.MacroExecutionException;
@@ -43,7 +45,7 @@ public class MarkdownUnitTest {
 		assertTrue(output.contains("<em>Italic</em>"));
 	}
 	@Test
-	public void testSyntaxHighlighting() throws MacroExecutionException {
+	public void testSyntaxHighlighting() throws MacroExecutionException, IOException {
 		/*Test that the javascript for syntax highlighting works*/
 		// Run the macro with an input of a line of code
 		// Create a temporary HTML file containing the output
@@ -76,18 +78,59 @@ public class MarkdownUnitTest {
 		    FileWriter writer = new FileWriter(tmpHTMLFile);
 		    writer.write(toWrite);
 		    writer.close();
+		    
 			final HtmlPage page = webClient.getPage(tmpHTMLFile.toURI().toURL().toString());
 			HtmlElement document = page.getDocumentElement();
-			assertTrue(document.getElementsByAttribute("span", "class", "hljs-class").size() > 0);
-			assertTrue(document.getElementsByAttribute("span", "class", "hljs-keyword").size() > 0);
-			assertTrue(document.getElementsByAttribute("span", "class", "hljs-title").size() > 0);
+			List<HtmlElement> spans = document.getElementsByTagName("span");
 			tmpHTMLFile.delete();
-		} catch (FailingHttpStatusCodeException e) {
-			e.printStackTrace();
-		} catch (MalformedURLException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
+			
+			HtmlElement hljsClassSpan = null;
+			int numberOfHljsClassSpans = 0;
+			HtmlElement hljsKeywordSpan = null;
+			int numberOfHljsKeywordSpans = 0;
+			HtmlElement hljsTitleSpan = null;
+			int numberOfHljsTitleSpans = 0;
+			
+			//Check the class of every span element and increment the counters accordingly
+			//Also define the three span objects as the first span of the correct class
+			for (HtmlElement span : spans) {
+				if (span.getAttribute("class").contains("hljs-class")) {
+					numberOfHljsClassSpans++;
+					if (numberOfHljsClassSpans == 1) {
+						hljsClassSpan = span;
+					}
+				}
+				if (span.getAttribute("class").contains("hljs-keyword")) {
+					numberOfHljsKeywordSpans++;
+					if (numberOfHljsKeywordSpans == 1) {
+						hljsKeywordSpan = span;
+					}
+				}
+				if (span.getAttribute("class").contains("hljs-title")) {
+					numberOfHljsTitleSpans++;
+					if (numberOfHljsTitleSpans == 1) {
+						hljsTitleSpan = span;
+					}
+				}
+			}
+			
+			//  Test that there is exactly one span with a css class of hljs-class
+			//  and that it's parent is a code element with a css class of hljs
+			assertThat(numberOfHljsClassSpans, is(1));
+			assertTrue(hljsClassSpan.getParentNode().getNodeName().equals("code"));
+			assertTrue(hljsClassSpan.getParentNode().getAttributes().getNamedItem("class").getNodeValue().contains("hljs"));
+			
+			//  Test that there is exactly one span with a css class of hljs-keyword
+			//  and that it's parent is a span element with a css class of hljs-class
+			assertThat(numberOfHljsKeywordSpans, is(1));
+			assertTrue(hljsKeywordSpan.getParentNode().getNodeName().equals("span"));
+			assertTrue(hljsKeywordSpan.getParentNode().getAttributes().getNamedItem("class").getNodeValue().contains("hljs-class"));
+			
+			//  Test that there is exactly one span with a css class of hljs-title
+			//  and that it's parent is a span element with a css class of hljs-class
+			assertThat(numberOfHljsTitleSpans, is(1));
+			assertTrue(hljsTitleSpan.getParentNode().getNodeName().equals("span"));
+			assertTrue(hljsTitleSpan.getParentNode().getAttributes().getNamedItem("class").getNodeValue().contains("hljs-class"));
 		}
 	}
 	
